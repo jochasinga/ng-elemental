@@ -1,10 +1,10 @@
 <img src="images/view-update-model.png" width=650></img>
 
 # ng-elemental
-AngularJS application pattern for unidirectional flow and predictable state container, inspired by [Elm](https://www.gitbook.com/book/evancz/an-introduction-to-elm/details) and [Flux](https://facebook.github.io/flux/).
+AngularJS application pattern for unidirectional flow and predictable state, inspired by [Elm](https://www.gitbook.com/book/evancz/an-introduction-to-elm/details) and [Flux](https://facebook.github.io/flux/).
 
 ## Complexity
-AngularJS feels like a collection of features and tools accumulated over time than a well-designed framework. Some of the issues have been unnecessarily complicate in AngularJS were:
+To a naive developer, AngularJS feels like a collection of features and tools accumulated over time glued together with a digest cycle. Some of the issues which have been unnecessarily complicate and preventing me from learning it quicker and be more productive were:
 + unrestricted immutability surface
 + bidirectional data flow
 + lack of clear lines between controllers and services 
@@ -103,7 +103,7 @@ function MyStoreController (myStoreService) {
 }
 
 ```
-As you can see, the `myStoreService` instance only holds the model state and messages, and does not responsible for anything else. It is okay to maybe wrap the implementation of the controller's `update` function in a "private" method, such as `_update`.
+As you can see, the `myStoreService` instance only holds the model state and messages, and does not responsible for anything else. It is okay to maybe wrap the implementation of the controller's `update` function inside the service as a private method i.e. `_update` as long as it won't be used outside of the controller's `update`.
 
 The `messageOpts` object ideally store pure functions which accept a `model` (not its property value) as one of the arguments, and use the rest of the arguments in an expression that merges and/or clones and return a modified `model`. The `update` function is the only place that gets to mutate the model state.
 
@@ -128,12 +128,12 @@ let storeDashboard = {
     <ul>
       <li>
         {{$ctrl.store.model.name}}
-        <input ng-model="$ctrl.update('SetName')"
+        <input ng-model="$ctrl.update('SetName', $ctrl.store.model)"
                ng-model-options="{ getterSetter: true }">
       </li>
       <li>
         {{$ctrl.store.model.age}}
-        <button ng-click="$ctrl.update(0)('SetAge')">Reset</button>
+        <button ng-click="$ctrl.update(0)('SetAge', $ctrl.store.model)">Reset</button>
       </li>
     </ul>
   `
@@ -150,10 +150,11 @@ function MyStoreController (myStoreService) {
   // ...
   
   this.update = (...args) => {
-    return (message) => {
-      if (angular.isDefined(...args)) {
-        this.store.model = this.store.messages[message](...args);
-      }
+    return (message, model) => {
+      if (angular.isDefined(...args)) 
+        this.store.model = this.store.messages[message](model, ...args);
+      else
+        this.store.model = this.store.messages[message](model);
     }
   }
 }
@@ -164,12 +165,71 @@ It makes a lot of sense, since in a functional ML-like language like Elm all fun
 
 ```javascript
 
-// send value 16 to SetAge action on the model
-ctrl.update(16)('SetAge')
+// Update by sending value 16 with 'SetAge' message on the model
+ctrl.update(16)('SetAge', ctrl.store.model)
 
 ```
 
-With this change, we have just tweaked `ngModel` to become unidirectional.
+With this change, we have just tweaked `ngModel` to update the model via `update`.
 
 ## Predictability
-TBC
+With this pattern, it is much easier to trace how the model gets mutated as a packaged state. The controller becomes very lean, since all the local functions are refactored and grouped into the messages object as pure functions and let `update` act as a single immutability surface. To recap, here is a simple counter app portraying the three parts, `Model-View-Update`.
+
+```javascript
+
+function counterSvc () {
+  return (model, messages) => {
+    return {
+      model: model,
+      messages: messages
+    }
+  }
+}
+
+function counterCtrl (counterSvc) {
+  let model = 0;
+  let counterMsg = {
+    Inc   : (model) => { return model + 1; },
+    Dec   : (model) => { return model - 1; },
+    Reset : (model) => { return model - model; },
+    Set   : (model, val) => { return val; }
+  }
+  this.store = counterSvc(model, counterMsg);
+  this.update = (...args) => {
+    return (msg, model) => {
+      if (msg in this.store.messages) {
+        if (angular.isDefined(...args))
+          this.store.model = this.store.messages[msg](model, ...args);
+        else
+          this.store.model = this.store.messages[msg](model);
+      }
+    }
+  }
+}
+
+let counterComponent = {
+  controller: counterCtrl,
+  template: `
+    <p>{{$ctrl.store.model}}</p>
+    <label for="number-setter">Set a number</label>    
+    <input id="number-setter"
+           ng-model-options="{ setterGetter: true }"
+           ng-model="$ctrl.update('Set', $ctrl.store.model)">
+    <button ng-click="$ctrl.update()('Inc', $ctrl.store.model)">
+      &#45;
+    </button>
+    <button ng-click="$ctrl.update()('Dec', $ctrl.store.model)">
+      &#43;
+    </button>
+    <button ng-click="$ctrl.update()('Reset', $ctrl.store.model)">
+      &times;
+    </button>
+  `
+}
+
+angular.module("counterApp", [])
+  .service("counterSvc", counterSvc)
+  .controller("counterCtrl", counterCtrl)
+  .component("counterView", counterComponent);
+
+```
