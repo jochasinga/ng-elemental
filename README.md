@@ -1,4 +1,4 @@
-![view-update-model diagram](images/view-update-model.png)
+<img src="images/view-update-model.png" width=650></img>
 
 # ng-elemental
 AngularJS application pattern for unidirectional flow and predictable state container, inspired by [Elm](https://www.gitbook.com/book/evancz/an-introduction-to-elm/details) and [Flux](https://facebook.github.io/flux/).
