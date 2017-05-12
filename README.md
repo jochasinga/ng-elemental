@@ -1,21 +1,88 @@
-<img src="images/view-update-model.png" width=650></img>
+<img src="images/diagram.png" width=650></img>
 
 # ng-elemental
-AngularJS application pattern for unidirectional flow and predictable state, inspired by [Elm](https://www.gitbook.com/book/evancz/an-introduction-to-elm/details) and [Flux](https://facebook.github.io/flux/).
+AngularJS application pattern for unidirectional flow, inspired by [Elm](https://www.gitbook.com/book/evancz/an-introduction-to-elm/details) and [Flux](https://facebook.github.io/flux/).
+
+Read about [why I created this pattern](https://medium.com/@jochasinga/writing-angular-app-the-elms-way-6e98ad305570).
 
 ## Complexity
-To a naive developer, AngularJS feels like a collection of features and tools accumulated over time glued together with a digest cycle. Some of the issues which have been unnecessarily complicate and preventing me from learning it quicker and be more productive were:
+To a naive developer, AngularJS can feel like a yarn ball glued to the digest cycle. What makes AngularJS "multi-angle" are:
 + unrestricted immutability surface
 + bidirectional data flow
 + lack of clear lines between controllers and services 
 + ubiquitous mutation of state within injected services from any controller
 
-Some of these has a lot to do with Javascript than AngularJS.
+Below are examples of entangled messes.
 
-## Model-update-view
-This is an opinionated pattern and not a framework, module, or even a rule. This can appear as an anti-pattern to Javascript and Angular programmers, considering coming from myself with limited experience in AngularJS and Javascript (but with a fresh bias of wanting to improve how I work with them).
+#### Example 1
+AngularJS service class which have wide immutability surface and also provide too many methods to mutate the state when it should have delegated to a controller.
 
-With that in mind, here is a few things I would refactor going forward with AngularJS. This pattern is heavily influenced by the Elm architecture (which had also inspired Redux). 
+```javascript
+
+class FooService {
+  constructor() {
+    this.state = "foo";
+  }
+  addBaz() {
+    this.state = this.state + " baz";
+  }
+  addBar() {
+    this.state = this.state + " bar";
+  }
+  _addBaz() {
+    this.addBaz();
+  }
+  
+  // this goes on ...
+}
+
+angular.module("Foo").service("FooService", FooService);
+
+```
+
+#### Example 2
+An AngularJS controller using both the service instance and the one attached to its scope to mutate the model state.
+
+```javascript
+
+function FooController ($scope, FooService) {
+  $scope.FooService = FooService;
+  $scope.addBaz = () => {
+    FooService.addBaz();
+	
+    // or you can do this
+	// $scope.FooService.addBaz();
+  }
+}
+
+angular.module("Foo").controller("FooController", FooController);
+
+
+```
+
+#### Example 3
+The DOM can access local `FooService` to call its `addBaz` or it can call the controller's `addBaz` to mutate the model state.
+
+```html
+
+<div ng-controller="FooController">
+  <!-- Using controller's service instance as API to state -->
+  <button ng-click="FooService.addBaz()">Add Baz from Svc</button>
+
+  <!-- Using controller's method as API to state -->
+  <button ng-click="addBaz()">Add Baz from Ctrl</button>
+</div>
+
+```
+
+## The Elm's Way
+Read about [Elm's architecture](https://guide.elm-lang.org/architecture/).)
+
+
+## Model-Update-View
+This is an opinionated pattern and not a framework, module, or even a rule. This can appear as an anti-pattern to Javascript and Angular programmers. This is a fresh bias from someone who wants to improve his Angular pattern.
+
+With that in mind, here is a few things I would do going forward with AngularJS. This pattern is heavily influenced by the Elm architecture (which had also inspired Redux). 
 
 ### Model 
 + A service should act as a store or a state container, and should always coupled by a controller instead of trying to provide its owner API.
@@ -39,12 +106,12 @@ class MyStoreService {
 // or
 
 function MyStoreService () {
-   return (initState, messageOpts) => {
-     return {
-       model: initState,
-       messages: messageOpts
-     }
-   }
+  return (initState, messageOpts) => {
+    return {
+      model: initState,
+      messages: messageOpts
+    }
+  }
 }
 
 app.module("services", []).service("myStoreService", MyStoreServce);
