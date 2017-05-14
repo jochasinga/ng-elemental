@@ -1,0 +1,20 @@
+{
+  "name": "counter-app",
+  "description": "Simple counter app in written in Angularjs elemental pattern",
+  "main": "",
+  "authors": [
+    "Joe Chasinga <jo.chasinga@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "angular-mocks": "1.6.4"
+  }
+}

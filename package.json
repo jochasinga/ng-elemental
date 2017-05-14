@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "test": "karma start karma.conf.js"
+  },
+  "devDependencies": {
+    "angular-mock": "^1.0.0",
+    "angular-mocks": "^1.6.4",
+    "babel-loader": "^7.0.0",
+    "jasmine": "^2.6.0",
+    "jasmine-core": "^2.6.1",
+    "karma": "^1.7.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-phantomjs-launcher": "^1.0.4",
+    "karma-webpack": "^2.0.3",
+    "webpack": "^2.5.0"
+  }
+}
